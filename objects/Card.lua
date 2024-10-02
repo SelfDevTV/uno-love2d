@@ -15,32 +15,40 @@ local Card = Class {
         self.animating = false
         self.hoverTargetPos = self.position
         self.allowedToHover = false
+        self.tween = nil
+        self.changingPosition = false
     end
 }
 
 function Card:setPosition(newPos, shouldAnimate, oncomplete)
-    print("setting position")
+    self.changingPosition = true
+    if self.tween then self.tween:stop() end
+    self.allowedToHover = false
+
     self.hoverTargetPos = newPos - Vector(0, 30)
     if shouldAnimate then
         local startTime = love.timer.getTime()
-        Flux.to(self.position, 30, { x = newPos.x, y = newPos.y }):oncomplete(function()
-            print(love.timer.getTime() - startTime)
+        self.tween = Flux.to(self.position, .5, { x = newPos.x, y = newPos.y }):oncomplete(function()
+            self.changingPosition = false
             self.allowedToHover = true
             if oncomplete then oncomplete() end
-            print("finished setting pos of card")
         end)
     else
         if oncomplete then oncomplete() end
         self.position = newPos
     end
+
+    self.hoverTargetPos = newPos
 end
 
 function Card:hoverUp()
-    Flux.to(self.position, 0.5, { x = self.hoverTargetPos.x, y = self.hoverTargetPos.y - 30 })
+    if self.changingPosition then return end
+    self.tween = Flux.to(self.position, 0.5, { x = self.hoverTargetPos.x, y = self.hoverTargetPos.y - 30 })
 end
 
 function Card:hoverDown()
-    Flux.to(self.position, 0.5, { x = self.hoverTargetPos.x, y = self.hoverTargetPos.y })
+    if self.changingPosition then return end
+    self.tween = Flux.to(self.position, 0.5, { x = self.hoverTargetPos.x, y = self.hoverTargetPos.y })
 end
 
 function Card:update(dt)

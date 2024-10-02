@@ -2,11 +2,24 @@ Flux = require "libs.flux"
 Class = require "libs.class"
 Vector = require "libs.vector"
 Signal = require "libs.signal"
+Timer = require "libs.timer"
+
+-- push
 Push = require "libs.push"
+local gameWidth, gameHeight = 1920,
+    1080 --fixed game resolution
+local windowWidth, windowHeight = love.window.getDesktopDimensions()
+windowWidth, windowHeight = gameWidth * .5,
+    gameHeight *
+    .5                                                                                                     --make the window a bit smaller
+Push:setupScreen(gameWidth, gameHeight, windowWidth, windowHeight, { fullscreen = false, highdpi = true }) --setup screen for push
 
 local deck = require "objects.Deck"
+local gm = require "objects.GameManager"
 
 SCALE = 0.5
+CARD_HEIGHT = 562 * SCALE
+CARD_WIDTH = 388 * SCALE
 
 Enums = {
     Colors = {
@@ -35,4 +48,5 @@ Enums = {
     }
 }
 
-Deck = deck(Vector(300, 100))
+Deck = deck(Vector(Push:getWidth() / 2 + CARD_WIDTH / 2, Push:getHeight() / 2 - CARD_HEIGHT / 2))
+GameManager = gm()

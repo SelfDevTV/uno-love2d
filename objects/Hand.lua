@@ -5,8 +5,11 @@ local Hand = Class {
         self.isAi = isAi or false
         self.hoveredCard = nil
         self.hoveredCardIndex = nil
+        self.prevCardX = 0
     end
 }
+
+
 
 function Hand:drawCard()
     local card = Deck:getCard()
@@ -18,7 +21,7 @@ function Hand:drawCard()
     end
 
 
-    card:setPosition(Vector(self.position.x + (#self.cards - 1) * 80, self.position.y), true)
+    card:setPosition(Vector(self.position.x + #self.cards * 80, self.position.y), true)
     table.insert(self.cards, card)
 end
 
@@ -45,9 +48,7 @@ function Hand:draw()
     for i, card in ipairs(self.cards) do
         if self.hoveredCardIndex and i == self.hoveredCardIndex then
             card:hoverUp()
-            love.graphics.setColor(1, 0, 0)
         else
-            love.graphics.setColor(1, 1, 1, 1)
             card:hoverDown()
         end
         card:draw()
@@ -62,6 +63,9 @@ function Hand:mousepressed(x, y)
 end
 
 function Hand:update(dt)
+    if self.isAi then
+        return
+    end
     self.hoveredCard, self.hoveredCardIndex = self:checkHovered()
     for _, card in ipairs(self.cards) do
         card:update(dt)
@@ -69,10 +73,33 @@ function Hand:update(dt)
 end
 
 function Hand:playCard(card)
+    -- if no card is passed in, we assume its ai
+    if not card and self.isAi then
+        -- choose a random playable card
+        for i, card in ipairs(self.cards) do
+            if Deck:canPlayCard(card) then
+                table.remove(self.cards, i)
+                for j = i, #self.cards do
+                    local c = self.cards[j]
+                    c:setPosition(Vector(self.position.x + j * 80, self.position.y), true)
+                end
+                card:flip()
+                Deck:playCard(card)
+                break
+            end
+        end
+        return
+    end
     local playedCardIndex = self.hoveredCardIndex
-    Deck:playCard(card, function()
+    if Deck:canPlayCard(card) then
         table.remove(self.cards, playedCardIndex)
-    end)
+        for i = playedCardIndex, #self.cards do
+            local c = self.cards[i]
+            c:setPosition(Vector(self.position.x + i * 80, self.position.y), true)
+        end
+        Deck:playCard(card)
+        GameManager:nextPlayer()
+    end
 end
 
 return Hand

@@ -1,5 +1,6 @@
-local Card = require "objects.Card"
+local Card                    = require "objects.Card"
 local generateUnoCardsForDeck = require "utils.generateUnoCardsForDeck"
+local Hand                    = require "objects.Hand"
 -- displays a deck of cards and the last played card,
 -- can be shuffled and generated
 
@@ -15,22 +16,34 @@ local function generateDeckCards(position)
     return cards
 end
 
+local function addHands()
+    local hands = {
+        Hand(Vector(300, 500)),
+        Hand(Vector(300, 0, true))
+    }
+end
+
 local Deck = Class {
     init = function(self, position)
         self.position = position
         self.cards = generateUnoCardsForDeck()
         self.playedCards = {}
         self.deckCards = generateDeckCards(self.position:clone())
-        self.playedCardsPosition = Vector(0, self.position.y)
-        self.lastPlayedCard = self:getCard()
-        self.lastPlayedCard.position = self.playedCardsPosition:clone()
-        self.lastPlayedCard:setPosition(self.playedCardsPosition:clone(), true)
+        self.playedCardsPosition = Vector(self.position.x - 2 * CARD_WIDTH, self.position.y)
+        self.lastPlayedCard = nil
+
+
+        self.hands = addHands()
         -- card thats animating
     end
 }
 
 function Deck:canPlayCard(card)
-    if card.value == self.lastPlayedCard.value or card.color == self.lastPlayedCard.color then
+    local matchingColorOrValue = card.value == self.lastPlayedCard.value or card.color == self.lastPlayedCard.color
+    local cardIsWildCard = card.value == Enums.Values.WILD or card.value == Enums.Values.WILDDRAW4
+    local lastCardIsWildCard = self.lastPlayedCard.value == Enums.Values.WILD or
+        self.lastPlayedCard.value == Enums.Values.WILDDRAW4
+    if matchingColorOrValue or cardIsWildCard or lastCardIsWildCard then
         return true
     end
 
@@ -42,10 +55,11 @@ function Deck:playCard(card, onsuccess)
     if not card or not self:canPlayCard(card) then
         return
     end
+    self.currentPlayedCard = card
+
     card:setPosition(self.playedCardsPosition:clone(), true, function()
         self.lastPlayedCard = card
         self.currentPlayedCard = nil
-        if onsuccess then onsuccess() end
     end)
 end
 
@@ -55,6 +69,7 @@ function Deck:getCard()
         return
     end
     local card = table.remove(self.cards, 1)
+    card:setPosition(self.playedCardsPosition:clone(), false)
 
     return card
 end
@@ -68,11 +83,20 @@ function Deck:getCards(amount)
     return cards
 end
 
+function Deck:revealFirstCard()
+    self.lastPlayedCard = self:getCard()
+    self.lastPlayedCard:setPosition(self.position:clone(), false)
+    self.lastPlayedCard:setPosition(self.playedCardsPosition:clone(), true)
+end
+
 function Deck:update(dt)
     for i, card in ipairs(self.deckCards) do
         card:update(dt)
     end
-    self.lastPlayedCard:update(dt)
+    -- self.lastPlayedCard:update(dt)
+    if self.currentPlayedCard then
+        self.currentPlayedCard:update(dt)
+    end
 end
 
 function Deck:draw()
@@ -81,7 +105,12 @@ function Deck:draw()
         card:draw()
     end
     -- draw lastPlayedCard
-    self.lastPlayedCard:draw()
+    if self.lastPlayedCard then
+        self.lastPlayedCard:draw()
+    end
+    if self.currentPlayedCard then
+        self.currentPlayedCard:draw()
+    end
 end
 
 return Deck
